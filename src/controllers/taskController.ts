@@ -15,7 +15,6 @@ export const createTask = async (req: Request, res: Response) => {
     const projectId = await getProjectIdByName(projectName);
     if (!projectId) return res.status(404).json({ error: 'Project not found' });
 
-    // Buat task baru
     const task = await prisma.task.create({
       data: {
         title,

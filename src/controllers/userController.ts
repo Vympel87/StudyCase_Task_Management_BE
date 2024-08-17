@@ -1,24 +1,31 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prismaClient';
+import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
 
 export const createUser = async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
-  const avatar = req.file ? `/storage/images/${req.file.filename}` : undefined;
+  const avatar = req.file ? `/storages/images/${req.file.filename}` : undefined;
+
+  console.log('Request File:', req.file);
 
   try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await prisma.user.create({
       data: {
         username,
         email,
-        password,
+        password: hashedPassword,
         avatar,
       },
     });
+
     res.status(201).json(user);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create user' });
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: `Failed to create user: ${error.message}` });
   }
 };
 
@@ -50,7 +57,9 @@ export const getUserById = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { username, email, password } = req.body;
-  const avatar = req.file ? `/storage/images/${req.file.filename}` : undefined;
+  const avatar = req.file ? `/storages/images/${req.file.filename}` : undefined;
+
+  console.log('Request File:', req.file);
 
   try {
     const user = await prisma.user.update({
@@ -58,15 +67,17 @@ export const updateUser = async (req: Request, res: Response) => {
       data: {
         username,
         email,
-        password,
+        password: password ? await bcrypt.hash(password, 10) : undefined,
         avatar,
       },
     });
     res.status(200).json(user);
   } catch (error) {
+    console.error('Error updating user:', error);
     res.status(500).json({ error: 'Failed to update user' });
   }
 };
+
 
 export const deleteUser = async (req: Request, res: Response) => {
   const { id } = req.params;
